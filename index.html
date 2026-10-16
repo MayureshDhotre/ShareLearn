@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MongoDB Learning — Index</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --card-hover: #273449;
+    --accent: #4db33d;
+    --accent2: #13aa52;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --border: #334155;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2rem 1rem 4rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: radial-gradient(circle at top, #16233d 0%, var(--bg) 55%);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 2.5rem; }
+  header h1 {
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    margin: 0 0 .4rem;
+    letter-spacing: -.5px;
+  }
+  header h1 .leaf { color: var(--accent); }
+  header p { color: var(--muted); margin: 0; }
+  h2 {
+    font-size: .8rem;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--muted);
+    margin: 2.2rem 0 .8rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: .5rem;
+  }
+  .grid { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+  a.item {
+    display: flex;
+    align-items: center;
+    gap: .9rem;
+    padding: 1rem 1.1rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    text-decoration: none;
+    color: var(--text);
+    transition: background .15s, transform .15s, border-color .15s;
+  }
+  a.item:hover {
+    background: var(--card-hover);
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+  .icon {
+    flex: 0 0 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    background: #0b1220;
+    font-size: 1.15rem;
+    font-weight: 700;
+  }
+  .meta { min-width: 0; }
+  .meta .name {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .meta .sub { font-size: .78rem; color: var(--muted); }
+  ul.links { list-style: none; padding: 0; margin: 0; display: grid; gap: .6rem; }
+  ul.links li {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: .85rem 1rem;
+  }
+  ul.links a { color: #7dd3fc; text-decoration: none; word-break: break-all; }
+  ul.links a:hover { text-decoration: underline; }
+  footer { text-align: center; color: var(--muted); font-size: .78rem; margin-top: 3rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span class="leaf">🍃</span> MongoDB Learning Index</h1>
+    <p>All files in <code>/home/mayuresh/Desktop/Learning/MongoDB/</code></p>
+  </header>
+
+  <h2>Files</h2>
+  <div class="grid">
+    <a class="item" href="mongodb-cheatsheet.html">
+      <div class="icon" style="color:#f97316">H</div>
+      <div class="meta">
+        <div class="name">mongodb-cheatsheet.html</div>
+        <div class="sub">HTML document &middot; 62 KB</div>
+      </div>
+    </a>
+    <a class="item" href="markdown-editor.html">
+      <div class="icon" style="color:#a78bfa">M</div>
+      <div class="meta">
+        <div class="name">markdown-editor.html</div>
+        <div class="sub">HTML document &middot; 18 KB</div>
+      </div>
+    </a>
+    <a class="item" href="MongoDB-DBA-Learning-Plan.md">
+      <div class="icon" style="color:#38bdf8">MD</div>
+      <div class="meta">
+        <div class="name">MongoDB-DBA-Learning-Plan.md</div>
+        <div class="sub">Markdown &middot; 14 KB</div>
+      </div>
+    </a>
+    <a class="item" href="mongodb_wiredtiger_memory_map.jpg">
+      <div class="icon" style="color:#facc15">IMG</div>
+      <div class="meta">
+        <div class="name">mongodb_wiredtiger_memory_map.jpg</div>
+        <div class="sub">Image &middot; 317 KB</div>
+      </div>
+    </a>
+    <a class="item" href="Notes">
+      <div class="icon" style="color:#34d399">TXT</div>
+      <div class="meta">
+        <div class="name">Notes</div>
+        <div class="sub">Plain text</div>
+      </div>
+    </a>
+    <a class="item" href="Youtube">
+      <div class="icon" style="color:#ef4444">TXT</div>
+      <div class="meta">
+        <div class="name">Youtube</div>
+        <div class="sub">Plain text</div>
+      </div>
+    </a>
+    <a class="item" href="README.md">
+      <div class="icon" style="color:#94a3b8">MD</div>
+      <div class="meta">
+        <div class="name">README.md</div>
+        <div class="sub">Markdown &middot; empty</div>
+      </div>
+    </a>
+  </div>
+
+  <h2>External Links</h2>
+  <ul class="links">
+    <li><a href="https://www.mongodb.com/docs/manual/sample-data/load-sample-data-local/" target="_blank" rel="noopener">Load Sample Data — MongoDB Docs</a></li>
+    <li><a href="https://www.youtube.com/watch?v=cLsawKBUdTE&amp;list=PLSmSa8KVdfSu-XFvjdWoN7z9WRoLly4my" target="_blank" rel="noopener">YouTube — MongoDB playlist (video 1)</a></li>
+    <li><a href="https://www.youtube.com/watch?v=7w917E5l1aw&amp;list=PLSmSa8KVdfSu-XFvjdWoN7z9WRoLly4my&amp;index=5" target="_blank" rel="noopener">YouTube — MongoDB playlist (index 5)</a></li>
+  </ul>
+
+  <footer>Generated index &middot; open files locally from this folder</footer>
+</div>
+</body>
+</html>

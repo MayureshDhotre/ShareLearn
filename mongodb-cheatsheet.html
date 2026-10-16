@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MongoDB Cheatsheet</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg-soft: #131a24;
+    --panel: #161d2a;
+    --panel-2: #1c2536;
+    --border: #2a3446;
+    --text: #e6edf3;
+  --muted: #93a1b3;
+    --accent: #00ed64;
+    --accent-2: #00b352;
+    --blue: #4db8ff;
+    --purple: #c792ea;
+    --orange: #ffb86c;
+    --yellow: #ffeb8b;
+    --red: #ff6b6b;
+    --code-bg: #0a0f16;
+    --shadow: 0 8px 30px rgba(0,0,0,.35);
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(0,237,100,.10), transparent 60%),
+      radial-gradient(900px 500px at 0% 0%, rgba(77,184,255,.08), transparent 55%),
+      var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  a { color: var(--blue); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ---------- Layout ---------- */
+  .app { display: grid; grid-template-columns: 290px 1fr; min-height: 100vh; }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar {
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    background: linear-gradient(180deg, var(--bg-soft), var(--bg));
+    border-right: 1px solid var(--border);
+    padding: 22px 16px 40px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+  .leaf {
+    width: 40px; height: 40px; flex: 0 0 40px; border-radius: 12px;
+    background: linear-gradient(135deg, #00ed64, #00a84a);
+    display: grid; place-items: center; color: #05260f; font-weight: 800; font-size: 20px;
+    box-shadow: 0 6px 18px rgba(0,237,100,.35);
+  }
+  .brand h1 { font-size: 18px; margin: 0; letter-spacing: .3px; }
+  .brand small { color: var(--muted); font-size: 11.5px; }
+  .search-wrap { position: relative; margin: 18px 0 14px; }
+  .search-wrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); opacity: .55; }
+  #search {
+    width: 100%; padding: 11px 34px 11px 38px; font-size: 14px;
+    background: var(--panel); color: var(--text);
+    border: 1px solid var(--border); border-radius: 10px; outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  #search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,237,100,.15); }
+  #clearSearch {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; display: none;
+  }
+  .meta-line { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); margin-bottom: 10px; padding: 0 2px; }
+  .meta-line b { color: var(--accent); }
+
+  nav a {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 11px; margin: 2px 0; border-radius: 9px;
+    color: var(--muted); font-size: 13.5px; font-weight: 500;
+    border-left: 2px solid transparent; transition: all .13s;
+  }
+  nav a:hover { background: var(--panel); color: var(--text); text-decoration: none; }
+  nav a.active { background: rgba(0,237,100,.10); color: var(--accent); border-left-color: var(--accent); }
+  nav .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); flex: 0 0 7px; }
+  nav a.active .dot, nav a:hover .dot { background: var(--accent); }
+  nav a.hide { display: none; }
+  .nav-group { font-size: 10.5px; text-transform: uppercase; letter-spacing: 1.4px; color: #5f6f85; margin: 16px 0 6px; padding-left: 6px; }
+
+  /* ---------- Main ---------- */
+  main { padding: 34px 46px 100px; max-width: 1180px; }
+  .hero {
+    background: linear-gradient(135deg, var(--panel), var(--panel-2));
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 26px 28px; margin-bottom: 30px; box-shadow: var(--shadow); position: relative; overflow: hidden;
+  }
+  .hero::after {
+    content: ""; position: absolute; right: -60px; top: -60px; width: 220px; height: 220px;
+    background: radial-gradient(circle, rgba(0,237,100,.25), transparent 70%);
+  }
+  .hero h2 { margin: 0 0 6px; font-size: 26px; }
+  .hero p { margin: 0; color: var(--muted); max-width: 760px; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .badge { font-size: 11.5px; padding: 5px 11px; border-radius: 20px; background: rgba(77,184,255,.12); color: var(--blue); border: 1px solid rgba(77,184,255,.25); }
+  .badge.g { background: rgba(0,237,100,.10); color: var(--accent); border-color: rgba(0,237,100,.28); }
+
+  section { margin-bottom: 40px; scroll-margin-top: 20px; }
+  section.hide { display: none; }
+  .sec-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px; }
+  .sec-head h3 {
+    font-size: 21px; margin: 0; padding-bottom: 6px;
+    border-bottom: 2px solid transparent; flex: 1;
+    background: linear-gradient(var(--accent), var(--accent)) no-repeat left bottom / 60px 2px;
+  }
+  .sec-head .tag { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  section > p.desc { color: var(--muted); margin: 0 0 16px; font-size: 14.5px; }
+
+  .grid { display: grid; gap: 16px; }
+  .grid.cols-2 { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 18px; transition: border-color .15s, transform .15s;
+  }
+  .card:hover { border-color: #37455e; }
+  .card h4 { margin: 0 0 10px; font-size: 14.5px; color: var(--accent); display: flex; align-items: center; gap: 8px; }
+  .card h4 .ic { font-size: 15px; }
+
+  /* ---------- Code ---------- */
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px;
+    padding: 13px 14px; overflow-x: auto; margin: 0; position: relative;
+    font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace; font-size: 13px; line-height: 1.55;
+  }
+  code { font-family: inherit; }
+  .inline-code { background: var(--code-bg); border: 1px solid var(--border); padding: 1.5px 6px; border-radius: 6px; font-size: 12.5px; color: var(--orange); font-family: "JetBrains Mono", Menlo, Consolas, monospace; }
+  .k  { color: var(--purple); }   /* keyword/command */
+  .f  { color: var(--blue); }     /* field / function */
+  .s  { color: var(--accent); }   /* string */
+  .n  { color: var(--orange); }   /* number */
+  .c  { color: #5f6f85; font-style: italic; } /* comment */
+  .o  { color: var(--yellow); }   /* operator */
+  .copy {
+    position: absolute; top: 8px; right: 8px; font-size: 11px; padding: 4px 9px;
+    background: var(--panel-2); color: var(--muted); border: 1px solid var(--border);
+    border-radius: 7px; cursor: pointer; opacity: 0; transition: all .15s; font-family: inherit;
+  }
+  .card:hover .copy, pre:hover .copy { opacity: 1; }
+  .copy:hover { color: var(--accent); border-color: var(--accent); }
+  .copy.done { color: var(--accent); border-color: var(--accent); }
+
+  /* ---------- Tables ---------- */
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--accent); font-size: 11.5px; text-transform: uppercase; letter-spacing: .8px; background: var(--panel-2); }
+  tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: rgba(255,255,255,.02); }
+  td code { color: var(--orange); font-size: 12.5px; }
+
+  .table-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .table-card table { font-size: 13.5px; }
+
+  ul.tight { margin: 6px 0; padding-left: 18px; }
+  ul.tight li { margin: 4px 0; font-size: 14px; }
+  ul.tight li code { color: var(--orange); }
+
+  .note { border-left: 3px solid var(--blue); background: rgba(77,184,255,.07); padding: 10px 14px; border-radius: 0 8px 8px 0; font-size: 13.5px; margin-top: 12px; }
+  .note.warn { border-color: var(--orange); background: rgba(255,184,108,.07); }
+  .note b { color: var(--blue); }
+  .note.warn b { color: var(--orange); }
+
+  mark { background: rgba(0,237,100,.28); color: #fff; border-radius: 3px; padding: 0 2px; }
+
+  .no-results { display: none; text-align: center; padding: 60px 20px; color: var(--muted); }
+  .no-results h3 { color: var(--text); }
+
+  footer { text-align: center; color: var(--muted); font-size: 12.5px; padding: 30px; border-top: 1px solid var(--border); }
+
+  .back-top {
+    position: fixed; right: 26px; bottom: 26px; width: 44px; height: 44px; border-radius: 12px;
+    background: var(--accent); color: #05260f; border: none; font-size: 20px; cursor: pointer;
+    box-shadow: 0 8px 24px rgba(0,237,100,.35); opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  .back-top.show { opacity: 1; pointer-events: auto; }
+
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { position: relative; height: auto; }
+    main { padding: 22px 18px 80px; }
+    nav .nav-scroll { display: flex; flex-wrap: wrap; gap: 4px; }
+    nav a { margin: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="leaf">🍃</div>
+      <div>
+        <h1>MongoDB Cheatsheet</h1>
+        <small>Shell · CRUD · Aggregation · Indexing</small>
+      </div>
+    </div>
+
+    <div class="search-wrap">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="search" type="text" placeholder="Search commands, operators…" autocomplete="off">
+      <button id="clearSearch" title="Clear">✕</button>
+    </div>
+    <div class="meta-line"><span>Results</span><b id="count">0</b></div>
+
+    <nav id="nav">
+      <div class="nav-group">Basics</div>
+      <div class="nav-scroll">
+        <a href="#intro"><span class="dot"></span>Getting Started</a>
+        <a href="#shell"><span class="dot"></span>Shell Helpers</a>
+        <a href="#datatypes"><span class="dot"></span>Data Types</a>
+        <a href="#crud-create"><span class="dot"></span>Create / Insert</a>
+        <a href="#crud-read"><span class="dot"></span>Read / Query</a>
+        <a href="#crud-update"><span class="dot"></span>Update</a>
+        <a href="#crud-delete"><span class="dot"></span>Delete</a>
+      </div>
+      <div class="nav-group">Querying</div>
+      <div class="nav-scroll">
+        <a href="#operators"><span class="dot"></span>Comparison Operators</a>
+        <a href="#logical"><span class="dot"></span>Logical &amp; Element</a>
+        <a href="#array"><span class="dot"></span>Array Operators</a>
+        <a href="#projection"><span class="dot"></span>Projection &amp; Sort</a>
+        <a href="#regex"><span class="dot"></span>Regex &amp; Text</a>
+      </div>
+      <div class="nav-group">Advanced</div>
+      <div class="nav-scroll">
+        <a href="#aggregation"><span class="dot"></span>Aggregation Pipeline</a>
+        <a href="#acc-ops"><span class="dot"></span>Accumulators</a>
+        <a href="#indexing"><span class="dot"></span>Indexing</a>
+        <a href="#transactions"><span class="dot"></span>Transactions</a>
+        <a href="#schema"><span class="dot"></span>Schema Design</a>
+        <a href="#admin"><span class="dot"></span>Admin &amp; Backup</a>
+        <a href="#performance"><span class="dot"></span>Performance Tips</a>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main>
+    <div class="hero">
+      <h2>🍃 MongoDB Cheatsheet</h2>
+      <p>A complete, searchable reference for MongoDB — from basic CRUD to the aggregation pipeline, indexing strategies, and schema design. Built for quick lookup while coding.</p>
+      <div class="badges">
+        <span class="badge g">NoSQL · Document Store</span>
+        <span class="badge">mongosh</span>
+        <span class="badge">CRUD</span>
+        <span class="badge">Aggregation</span>
+        <span class="badge">Indexing</span>
+        <span class="badge">Transactions</span>
+      </div>
+    </div>
+
+    <div class="no-results" id="noResults">
+      <h3>No matching sections</h3>
+      <p>Try a different keyword — e.g. <code class="inline-code">$match</code>, <code class="inline-code">createIndex</code>, <code class="inline-code">$lookup</code>.</p>
+    </div>
+
+    <!-- ================= INTRO ================= -->
+    <section id="intro" data-title="getting started intro connect uri connection string mongosh install basics">
+      <div class="sec-head"><h3>Getting Started</h3><span class="tag">Basics</span></div>
+      <p class="desc">MongoDB is a document-oriented NoSQL database. Data lives in <b>databases</b> → <b>collections</b> → <b>documents</b> (BSON/JSON objects).</p>
+      <div class="grid cols-2">
+        <div class="card">
+          <h4><span class="ic">🔌</span>Connection</h4>
+<pre><code><span class="c"># Start shell / connect to a host</span>
+<span class="k">mongosh</span> <span class="s">"mongodb://localhost:27017"</span>
+<span class="k">mongosh</span> <span class="s">"mongodb+srv://user:pass@cluster.mongodb.net/mydb"</span>
+
+<span class="c"># Common flags</span>
+<span class="k">mongosh</span> --quiet --eval <span class="s">"db.stats()"</span> mydb</code></pre>
+        </div>
+        <div class="card">
+          <h4><span class="ic">🧭</span>Core Hierarchy</h4>
+<pre><code><span class="k">show</span> <span class="f">databases</span>      <span class="c">// list DBs</span>
+<span class="k">show</span> <span class="f">collections</span>   <span class="c">// list collections</span>
+<span class="k">use</span> <span class="f">mydb</span>           <span class="c">// switch/create DB</span>
+<span class="k">db</span>                 <span class="c">// current DB handle</span>
+<span class="k">db</span>.<span class="f">getName</span>()        <span class="c">// current DB name</span></code></pre>
+          <div class="note"><b>Model:</b> Database → Collection → Document → Field. Documents are BSON (binary JSON) with a unique <code class="inline-code">_id</code>.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SHELL ================= -->
+    <section id="shell" data-title="shell helpers help syntax db collection commands show status">
+      <div class="sec-head"><h3>Shell Helpers</h3><span class="tag">mongosh</span></div>
+      <p class="desc">Convenience commands available directly in <code class="inline-code">mongosh</code>.</p>
+      <div class="table-card">
+        <table>
+          <thead><tr><th>Command</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>show dbs</code></td><td>List all databases</td></tr>
+            <tr><td><code>show collections</code></td><td>List collections in current DB</td></tr>
+            <tr><td><code>use &lt;db&gt;</code></td><td>Switch to database (created on first write)</td></tr>
+            <tr><td><code>db.getCollectionNames()</code></td><td>Array of collection names</td></tr>
+            <tr><td><code>db.stats()</code></td><td>Storage statistics for current DB</td></tr>
+            <tr><td><code>db.collection.stats()</code></td><td>Stats for a collection (count, size, indexes)</td></tr>
+            <tr><td><code>db.collection.explain()</code></td><td>Query execution plan</td></tr>
+            <tr><td><code>it</code></td><td>Iterate next batch of cursor results</td></tr>
+            <tr><td><code>it.batchSize = 20</code></td><td>Set cursor batch size</td></tr>
+            <tr><td><code>load("script.js")</code></td><td>Run a JS file in the shell</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================= DATATYPES ================= -->
+    <section id="datatypes" data-title="data types bson objectid string number date array object boolean null timestamp decimal binary">
+      <div class="sec-head"><h3>Data Types</h3><span class="tag">BSON</span></div>
+      <p class="desc">Documents support rich BSON types beyond JSON.</p>
+      <div class="table-card">
+        <table>
+          <thead><tr><th>Type</th><th>Example</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td>String</td><td><code>"Alice"</code></td><td>UTF-8</td></tr>
+            <tr><td>ObjectId</td><td><code>ObjectId("65f1a2...")</code></td><td>12-byte unique _id (timestamp+random)</td></tr>
+            <tr><td>Number (double)</td><td><code>3.14</code></td><td>Default for decimals</td></tr>
+            <tr><td>Int32 / Int64</td><td><code>NumberInt(42)</code> / <code>NumberLong(9000000000)</code></td><td>Explicit integer widths</td></tr>
+            <tr><td>Decimal128</td><td><code>NumberDecimal("19.99")</code></td><td>Exact precision — money</td></tr>
+            <tr><td>Date</td><td><code>new Date()</code></td><td>Stored as UTC millis</td></tr>
+            <tr><td>Array</td><td><code>["a","b"]</code></td><td>Ordered list, indexable</td></tr>
+            <tr><td>Object</td><td><code>{ city: "Pune" }</code></td><td>Nested document</td></tr>
+            <tr><td>Boolean</td><td><code>true</code></td><td>—</td></tr>
+            <tr><td>Null</td><td><code>null</code></td><td>Also matches missing fields</td></tr>
+            <tr><td>Binary</td><td><code>BinData(0, "...")</code></td><td>Blobs</td></tr>
+            <tr><td>Timestamp</td><td><code>Timestamp()</code></td><td>Internal/oplog use</td></tr>
+            <tr><td>Regex</td><td><code>/^A/</code></td><td>Pattern matching</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note warn"><b>Rule:</b> Use <code class="inline-code">NumberDecimal</code> for currency — floating point causes rounding errors.</div>
+    </section>
+
+    <!-- ================= CREATE ================= -->
+    <section id="crud-create" data-title="create insert one many insertOne insertMany save add document upsert _id">
+      <div class="sec-head"><h3>Create / Insert</h3><span class="tag">CRUD</span></div>
+      <p class="desc">Add new documents to a collection.</p>
+      <div class="grid cols-2">
+        <div class="card">
+          <h4><span class="ic">➕</span>Insert</h4>
+<pre><code><span class="c">// Insert one document</span>
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">insertOne</span>({
+  <span class="f">name</span>: <span class="s">"Alice"</span>,
+  <span class="f">age</span>: <span class="n">30</span>,
+  <span class="f">email</span>: <span class="s">"alice@mail.com"</span>,
+  <span class="f">tags</span>: [<span class="s">"admin"</span>, <span class="s">"beta"</span>]
+})
+
+<span class="c">// Insert many (ordered by default)</span>
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">insertMany</span>([
+  { <span class="f">name</span>: <span class="s">"Bob"</span>,  <span class="f">age</span>: <span class="n">25</span> },
+  { <span class="f">name</span>: <span class="f">"Carol"</span>, <span class="f">age</span>: <span class="n">28</span> }
+], { <span class="f">ordered</span>: <span class="n">false</span> })
+
+<span class="c">// Upsert: insert if not exists</span>
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">updateOne</span>(
+  { <span class="f">email</span>: <span class="s">"alice@mail.com"</span> },
+  { <span class="f">$set</span>: { <span class="f">name</span>: <span class="s">"Alice"</span> } },
+  { <span class="f">upsert</span>: <span class="n">true</span> }
+)</code></pre>
+        </div>
+        <div class="card">
+          <h4><span class="ic">💡</span>Insert Notes</h4>
+          <ul class="tight">
+            <li><code>insertOne(doc)</code> returns <code>insertedId</code>.</li>
+            <li><code>insertMany([...])</code> returns <code>insertedIds</code> map.</li>
+            <li>MongoDB auto-generates <code>_id</code> (ObjectId) if absent.</li>
+            <li><code>ordered:false</code> continues past errors (faster bulk).</li>
+            <li>Duplicate <code>_id</code> → <code>E11000 duplicate key</code> error.</li>
+            <li><code>save()</code> is deprecated — use insert/update.</li>
+            <li>Max document size: <b>16 MB</b>.</li>
+          </ul>
+          <div class="note"><b>Bulk:</b> For large imports use <code class="inline-code">mongoimport</code> instead of loops.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= READ ================= -->
+    <section id="crud-read" data-title="read find query select filter findOne pretty cursor limit skip count">
+      <div class="sec-head"><h3>Read / Query</h3><span class="tag">CRUD</span></div>
+      <p class="desc">Retrieve documents with filters, cursors and options.</p>
+      <div class="grid cols-2">
+        <div class="card">
+          <h4><span class="ic">🔍</span>Find</h4>
+<pre><code><span class="k">db</span>.<span class="f">users</span>.<span class="f">find</span>()                 <span class="c">// all docs</span>
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">findOne</span>({ <span class="f">name</span>: <span class="s">"Alice"</span> })
+
+<span class="c">// Filter + projection + options</span>
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">find</span>(
+  { <span class="f">age</span>: { <span class="o">$gte</span>: <span class="n">18</span> } },          <span class="c">// query</span>
+  { <span class="f">name</span>: <span class="n">1</span>, <span class="f">age</span>: <span class="n">1</span>, <span class="f">_id</span>: <span class="n">0</span> }     <span class="c">// projection</span>
+).<span class="f">sort</span>({ <span class="f">age</span>: <span class="o">-1</span> })
+ .<span class="f">skip</span>(<span class="n">10</span>)
+ .<span class="f">limit</span>(<span class="n">5</span>)
+ .<span class="f">pretty</span>()
+
+<span class="c">// Counting</span>
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">countDocuments</span>({ <span class="f">age</span>: { <span class="o">$gt</span>: <span class="n">25</span> } })
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">estimatedDocumentCount</span>()  <span class="c">// fast, no filter</span></code></pre>
+        </div>
+        <div class="card">
+          <h4><span class="ic">🖱️</span>Cursor Methods</h4>
+          <ul class="tight">
+            <li><code>.toArray()</code> — load all results into array</li>
+            <li><code>.forEach(fn)</code> — iterate results</li>
+            <li><code>.next()</code> — fetch next document</li>
+            <li><code>.count()</code> — count (deprecated, use countDocuments)</li>
+            <li><code>.explain("executionStats")</code> — plan details</li>
+          </ul>
+          <div class="note"><b>Default batch:</b> 101 docs first, then ~16MB per batch. Always <code class="inline-code">.limit()</code> in production code.</div>
+          <div class="note warn"><b>Anti-pattern:</b> Skip is slow for deep pagination — use range/anchor pagination on <code class="inline-code">_id</code>.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= UPDATE ================= -->
+    <section id="crud-update" data-title="update modify set unset inc push pull pop rename upsert multi operators">
+      <div class="sec-head"><h3>Update</h3><span class="tag">CRUD</span></div>
+      <p class="desc">Modify existing documents using update operators.</p>
+      <div class="grid cols-2">
+        <div class="card">
+          <h4><span class="ic">🛠️</span>Update Methods</h4>
+<pre><code><span class="c">// Update one / many</span>
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">updateOne</span>({ <span class="f">name</span>: <span class="s">"Alice"</span> },
+  { <span class="f">$set</span>: { <span class="f">age</span>: <span class="n">31</span>, <span class="f">city</span>: <span class="s">"Pune"</span> } })
+
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">updateMany</span>({ <span class="f">age</span>: { <span class="o">$lt</span>: <span class="n">18</span> } },
+  { <span class="f">$set</span>: { <span class="f">minor</span>: <span class="n">true</span> } })
+
+<span class="c">// Replace whole document (keeps _id)</span>
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">replaceOne</span>({ <span class="f">_id</span>: id }, { <span class="f">name</span>: <span class="s">"New"</span> })
+
+<span class="c">// Find and modify (returns old/new doc)</span>
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">findOneAndUpdate</span>(
+  { <span class="f">name</span>: <span class="s">"Alice"</span> },
+  { <span class="f">$inc</span>: { <span class="f">age</span>: <span class="n">1</span> } },
+  { <span class="f">returnDocument</span>: <span class="s">"after"</span> }
+)</code></pre>
+        </div>
+        <div class="card">
+          <h4><span class="ic">⚙️</span>Update Operators</h4>
+          <div class="table-card" style="border:none">
+          <table>
+            <thead><tr><th>Operator</th><th>Action</th></tr></thead>
+            <tbody>
+              <tr><td><code>$set</code></td><td>Set field value</td></tr>
+              <tr><td><code>$unset</code></td><td>Remove field <code>{field:""}</code></td></tr>
+              <tr><td><code>$inc</code></td><td>Increment / decrement</td></tr>
+              <tr><td><code>$mul</code></td><td>Multiply</td></tr>
+              <tr><td><code>$rename</code></td><td>Rename field</td></tr>
+              <tr><td><code>$setOnInsert</code></td><td>Set only on upsert-insert</td></tr>
+              <tr><td><code>$push</code></td><td>Add to array (option <code>$each</code>)</td></tr>
+              <tr><td><code>$addToSet</code></td><td>Add if not present</td></tr>
+              <tr><td><code>$pull</code></td><td>Remove matching array items</td></tr>
+              <tr><td><code>$pop</code></td><td>Remove first/last <code>(1 / -1)</code></td></tr>
+              <tr><td><code>$pullAll</code></td><td>Remove list of values</td></tr>
+              <tr><td><code>$currentDate</code></td><td>Set to now (date/ timestamp)</td></tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+      <div class="note warn"><b>Warning:</b> Passing a plain object without operators <b>replaces</b> the whole document (except <code class="inline-code">_id</code>).</div>
+    </section>
+
+    <!-- ================= DELETE ================= -->
+    <section id="crud-delete" data-title="delete remove drop deleteOne deleteMany deleteAll collection">
+      <div class="sec-head"><h3>Delete</h3><span class="tag">CRUD</span></div>
+      <p class="desc">Remove documents or entire collections.</p>
+      <div class="grid cols-2">
+        <div class="card">
+          <h4><span class="ic">🗑️</span>Delete</h4>
+<pre><code><span class="k">db</span>.<span class="f">users</span>.<span class="f">deleteOne</span>({ <span class="f">name</span>: <span class="s">"Alice"</span> })
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">deleteMany</span>({ <span class="f">age</span>: { <span class="o">$lt</span>: <span class="n">18</span> } })
+
+<span class="c">// Drop entire collection (fast, removes indexes)</span>
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">drop</span>()
+
+<span class="c">// Delete all docs (keeps collection + indexes)</span>
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">deleteMany</span>({})
+
+<span class="c">// Drop whole database</span>
+<span class="k">db</span>.<span class="f">dropDatabase</span>()</code></pre>
+        </div>
+        <div class="card">
+          <h4><span class="ic">📌</span>Notes</h4>
+          <ul class="tight">
+            <li>Returns <code>{acknowledged, deletedCount}</code>.</li>
+            <li><code>deleteMany({})</code> is O(n) — prefer <code>drop()</code> to reclaim space quickly.</li>
+            <li>Deletes are logged in the oplog → replicate to secondaries.</li>
+            <li>Use <code>explain()</code> to confirm index usage before mass deletes.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= OPERATORS ================= -->
+    <section id="operators" data-title="comparison operators eq ne gt gte lt lte in nin ne query filter">
+      <div class="sec-head"><h3>Comparison Operators</h3><span class="tag">Query</span></div>
+      <p class="desc">Filter documents by value comparisons.</p>
+      <div class="table-card">
+        <table>
+          <thead><tr><th>Operator</th><th>Meaning</th><th>Example</th></tr></thead>
+          <tbody>
+            <tr><td><code>$eq</code></td><td>Equal (implicit)</td><td><code>{age: {$eq: 30}}</code></td></tr>
+            <tr><td><code>$ne</code></td><td>Not equal</td><td><code>{status: {$ne: "archived"}}</code></td></tr>
+            <tr><td><code>$gt</code></td><td>Greater than</td><td><code>{price: {$gt: 100}}</code></td></tr>
+            <tr><td><code>$gte</code></td><td>Greater or equal</td><td><code>{age: {$gte: 18}}</code></td></tr>
+            <tr><td><code>$lt</code></td><td>Less than</td><td><code>{age: {$lt: 65}}</code></td></tr>
+            <tr><td><code>$lte</code></td><td>Less or equal</td><td><code>{score: {$lte: 10}}</code></td></tr>
+            <tr><td><code>$in</code></td><td>Value in array</td><td><code>{tag: {$in: ["a","b"]}}</code></td></tr>
+            <tr><td><code>$nin</code></td><td>Value not in array</td><td><code>{tag: {$nin: ["x"]}}</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================= LOGICAL ================= -->
+    <section id="logical" data-title="logical operators and or not nor exists type size element query">
+      <div class="sec-head"><h3>Logical &amp; Element Operators</h3><span class="tag">Query</span></div>
+      <div class="grid cols-2">
+        <div class="card">
+          <h4><span class="ic">🧠</span>Logical</h4>
+<pre><code><span class="k">db</span>.<span class="f">users</span>.<span class="f">find</span>({
+  <span class="f">$and</span>: [
+    { <span class="f">age</span>: { <span class="o">$gte</span>: <span class="n">18</span> } },
+    { <span class="f">city</span>: <span class="s">"Pune"</span> }
+  ],
+  <span class="f">$or</span>: [
+    { <span class="f">role</span>: <span class="s">"admin"</span> },
+    { <span class="f">role</span>: <span class="s">"owner"</span> }
+  ],
+  <span class="f">$nor</span>: [ { <span class="f">banned</span>: <span class="n">true</span> } ]
+})
+
+<span class="c">// Implicit AND: multiple keys in one object</span>
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">find</span>({ <span class="f">age</span>: { <span class="o">$gt</span>: <span class="n">18</span> }, <span class="f">city</span>: <span class="s">"Pune"</span> })</code></pre>
+        </div>
+        <div class="card">
+          <h4><span class="ic">🔎</span>Element / Type</h4>
+<pre><code><span class="c">// Field exists (and not null)</span>
+{ <span class="f">email</span>: { <span class="o">$exists</span>: <span class="n">true</span> } }
+
+<span class="c">// Type check</span>
+{ <span class="f">age</span>: { <span class="o">$type</span>: <span class="s">"int"</span> } }
+{ <span class="f">age</span>: { <span class="o">$type</span>: [<span class="s">"int"</span>, <span class="s">"double"</span>] } }
+
+<span class="c">// Array length</span>
+{ <span class="f">tags</span>: { <span class="o">$size</span>: <span class="n">3</span> } }
+
+<span class="c">// Field not equal (handles missing fields)</span>
+{ <span class="f">deletedAt</span>: { <span class="o">$eq</span>: <span class="n">null</span> } }</code></pre>
+          <div class="note"><b>$type</b> aliases: <code class="inline-code">string</code>, <code class="inline-code">int</code>, <code class="inline-code">double</code>, <code class="inline-code">decimal</code>, <code class="inline-code">array</code>, <code class="inline-code">object</code>, <code class="inline-code">date</code>, <code class="inline-code">bool</code>, <code class="inline-code">objectId</code>.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= ARRAY ================= -->
+    <section id="array" data-title="array operators all elemMatch exists positional index matches query">
+      <div class="sec-head"><h3>Array Operators</h3><span class="tag">Query</span></div>
+      <div class="table-card">
+        <table>
+          <thead><tr><th>Operator</th><th>Meaning</th><th>Example</th></tr></thead>
+          <tbody>
+            <tr><td><code>$all</code></td><td>Array contains all listed values</td><td><code>{tags: {$all: ["a","b"]}}</code></td></tr>
+            <tr><td><code>$elemMatch</code></td><td>One element matches all conditions</td><td><code>{scores: {$elemMatch: {$gt: 80, $lt: 95}}}</code></td></tr>
+            <tr><td><code>$size</code></td><td>Exact array length</td><td><code>{tags: {$size: 2}}</code></td></tr>
+            <tr><td><code>field.0</code></td><td>Match by index</td><td><code>{"scores.0": 95}</code></td></tr>
+            <tr><td><code>field.$</code></td><td>Positional — update matched element</td><td><code>{$set: {"grades.$.score": 100}}</code></td></tr>
+            <tr><td><code>$[&lt;id&gt;]</code></td><td>All array elements (filtered)</td><td><code>{$set: {"items.$[].qty": 1}}</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note"><b>Multikey index:</b> Indexing an array field indexes each element — a document can match a query on any element.</div>
+    </section>
+
+    <!-- ================= PROJECTION ================= -->
+    <section id="projection" data-title="projection sort limit skip fields include exclude shape query cursor">
+      <div class="sec-head"><h3>Projection, Sort &amp; Paging</h3><span class="tag">Query</span></div>
+      <div class="grid cols-2">
+        <div class="card">
+          <h4><span class="ic">🎯</span>Projection</h4>
+<pre><code><span class="c">// Include only name &amp; email</span>
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">find</span>({}, { <span class="f">name</span>: <span class="n">1</span>, <span class="f">email</span>: <span class="n">1</span> })
+
+<span class="c">// Exclude _id</span>
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">find</span>({}, { <span class="f">_id</span>: <span class="n">0</span>, <span class="f">name</span>: <span class="n">1</span> })
+
+<span class="c">// Nested fields</span>
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">find</span>({}, { <span class="f">address.city</span>: <span class="n">1</span> })
+
+<span class="c">// Slice an array (last 3 tags)</span>
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">find</span>({}, { <span class="f">tags</span>: { <span class="f">$slice</span>: <span class="o">-3</span> } })</code></pre>
+        </div>
+        <div class="card">
+          <h4><span class="ic">↕️</span>Sort &amp; Pagination</h4>
+<pre><code><span class="c">// 1 = ascending, -1 = descending</span>
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">find</span>({ <span class="f">active</span>: <span class="n">true</span> })
+  .<span class="f">sort</span>({ <span class="f">score</span>: <span class="o">-1</span>, <span class="f">name</span>: <span class="n">1</span> })
+  .<span class="f">skip</span>(<span class="n">20</span>)
+  .<span class="f">limit</span>(<span class="n">10</span>)
+
+<span class="c">// Keyset pagination (fast, scalable)</span>
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">find</span>({ <span class="f">_id</span>: { <span class="o">$lt</span>: lastSeenId } })
+  .<span class="f">sort</span>({ <span class="f">_id</span>: <span class="o">-1</span> }).<span class="f">limit</span>(<span class="n">10</span>)</code></pre>
+          <div class="note warn"><b>Cannot mix</b> include (1) and exclude (0) in projection — except <code class="inline-code">_id</code>.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= REGEX ================= -->
+    <section id="regex" data-title="regex regular expression pattern match text search full text index case insensitive">
+      <div class="sec-head"><h3>Regex &amp; Text Search</h3><span class="tag">Query</span></div>
+      <div class="grid cols-2">
+        <div class="card">
+          <h4><span class="ic">🔡</span>Regular Expressions</h4>
+<pre><code><span class="c">// Literal regex</span>
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">find</span>({ <span class="f">name</span>: <span class="o">/^ali/</span> })        <span class="c">// prefix</span>
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">find</span>({ <span class="f">name</span>: <span class="o">/alice/i</span> })      <span class="c">// case-insensitive</span>
+
+<span class="c">$regex operator</span>
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">find</span>({ <span class="f">name</span>: { <span class="o">$regex</span>: <span class="s">"ali"</span>, <span class="o">$options</span>: <span class="s">"i"</span> } })
+
+<span class="c">// Anchored prefix uses index efficiently</span>
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">find</span>({ <span class="f">email</span>: { <span class="o">$regex</span>: <span class="s">"^a.*@mail"</span> } })</code></pre>
+        </div>
+        <div class="card">
+          <h4><span class="ic">📝</span>Text Search</h4>
+<pre><code><span class="c">// Create text index</span>
+<span class="k">db</span>.<span class="f">articles</span>.<span class="f">createIndex</span>({ <span class="f">title</span>: <span class="s">"text"</span>, <span class="f">body</span>: <span class="s">"text"</span> })
+
+<span class="c">// Search</span>
+<span class="k">db</span>.<span class="f">articles</span>.<span class="f">find</span>({ <span class="f">$text</span>: { <span class="o">$search</span>: <span class="s">"mongodb index"</span> } })
+
+<span class="c">// Phrase &amp; negation</span>
+{ <span class="f">$text</span>: { <span class="o">$search</span>: <span class="s">"\"mongodb db\" -redis"</span> } }
+
+<span class="c">// With score</span>
+<span class="k">db</span>.<span class="f">articles</span>.<span class="f">find</span>({ <span class="f">$text</span>: { <span class="o">$search</span>: <span class="s">"nosql"</span> } })
+  .<span class="f">sort</span>({ <span class="f">score</span>: { <span class="o">$meta</span>: <span class="s">"textScore"</span> } })</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= AGGREGATION ================= -->
+    <section id="aggregation" data-title="aggregation pipeline stage match group project unwind lookup sort limit facet merge out unwind">
+      <div class="sec-head"><h3>Aggregation Pipeline</h3><span class="tag">Advanced</span></div>
+      <p class="desc">A pipeline of stages that transform documents — the SQL equivalent of <code class="inline-code">SELECT … GROUP BY … JOIN</code>.</p>
+      <div class="card">
+        <h4><span class="ic">📊</span>Basic Pipeline</h4>
+<pre><code><span class="k">db</span>.<span class="f">orders</span>.<span class="f">aggregate</span>([
+  { <span class="f">$match</span>:  { <span class="f">status</span>: <span class="s">"paid"</span>, <span class="f">date</span>: { <span class="o">$gte</span>: start } } }, <span class="c">// filter FIRST (uses index)</span>
+  { <span class="f">$unwind</span>: <span class="s">"$items"</span> },                                <span class="c">// explode array</span>
+  { <span class="f">$group</span>:  {
+      <span class="f">_id</span>: <span class="s">"$customerId"</span>,
+      <span class="f">total</span>:   { <span class="f">$sum</span>: { <span class="f">$multiply</span>: [<span class="s">"$items.price"</span>, <span class="s">"$items.qty"</span>] } },
+      <span class="f">orders</span>:  { <span class="f">$sum</span>: <span class="n">1</span> },
+      <span class="f">avgOrder</span>:{ <span class="f">$avg</span>: <span class="s">"$total"</span> }
+  } },
+  { <span class="f">$sort</span>:   { <span class="f">total</span>: <span class="o">-1</span> } },
+  { <span class="f">$limit</span>:  <span class="n">10</span> },
+  { <span class="f">$project</span>: { <span class="f">_id</span>: <span class="n">0</span>, <span class="f">customer</span>: <span class="s">"$_id"</span>, <span class="f">total</span>: <span class="n">1</span>, <span class="f">orders</span>: <span class="n">1</span> } }
+], { <span class="f">allowDiskUse</span>: <span class="n">true</span> })</code></pre>
+      </div>
+
+      <div class="table-card" style="margin-top:16px">
+        <table>
+          <thead><tr><th>Stage</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>$match</code></td><td>Filter documents (put early → index use)</td></tr>
+            <tr><td><code>$project</code></td><td>Reshape / compute fields</td></tr>
+            <tr><td><code>$group</code></td><td>Group by key + accumulators</td></tr>
+            <tr><td><code>$unwind</code></td><td>Deconstruct array into rows</td></tr>
+            <tr><td><code>$sort</code></td><td>Order documents</td></tr>
+            <tr><td><code>$limit</code> / <code>$skip</code></td><td>Paging / trimming</td></tr>
+            <tr><td><code>$lookup</code></td><td>LEFT JOIN another collection</td></tr>
+            <tr><td><code>$addFields</code> / <code>$set</code></td><td>Add/modify fields in place</td></tr>
+            <tr><td><code>$count</code></td><td>Count remaining docs</td></tr>
+            <tr><td><code>$facet</code></td><td>Run multiple sub-pipelines in parallel</td></tr>
+            <tr><td><code>$bucket</code> / <code>$bucketAuto</code></td><td>Histogram / range bucketing</td></tr>
+            <tr><td><code>$sample</code></td><td>Random documents</td></tr>
+            <tr><td><code>$out</code></td><td>Write results to a collection</td></tr>
+            <tr><td><code>$merge</code></td><td>Merge results into target (upsert)</td></tr>
+            <tr><td><code>$graphLookup</code></td><td>Recursive self-join (trees)</td></tr>
+            <tr><td><code>$replaceRoot</code></td><td>Promote sub-doc to root</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid cols-2" style="margin-top:16px">
+        <div class="card">
+          <h4><span class="ic">🔗</span>$lookup Example</h4>
+<pre><code>{
+  <span class="f">$lookup</span>: {
+    <span class="f">from</span>: <span class="s">"users"</span>,              <span class="c">// collection (same DB)</span>
+    <span class="f">localField</span>: <span class="s">"userId"</span>,
+    <span class="f">foreignField</span>: <span class="s">"_id"</span>,
+    <span class="f">as</span>: <span class="s">"user"</span>
+  }
+},
+{ <span class="f">$unwind</span>: <span class="s">"$user"</span> }   <span class="c">// or {$unwind: {path:"$user", preserveNullAndEmptyArrays:true}}</span></code></pre>
+        </div>
+        <div class="card">
+          <h4><span class="ic">🪄</span>Expression Operators</h4>
+          <ul class="tight">
+            <li><code>$sum, $avg, $min, $max</code> — math in expressions</li>
+            <li><code>$concat, $toUpper, $substr</code> — strings</li>
+            <li><code>$cond / $switch</code> — conditionals</li>
+            <li><code>$multiply, $divide, $subtract</code> — arithmetic</li>
+            <li><code>$ifNull</code> — default value</li>
+            <li><code>$map / $filter / $reduce</code> — array transforms</li>
+            <li><code>$dateToString, $dateTrunc</code> — dates</li>
+            <li><code>$size, $slice, $isArray</code> — array helpers</li>
+          </ul>
+        </div>
+      </div>
+      <div class="note"><b>Tip:</b> <code class="inline-code">$match</code> and <code class="inline-code">$sort</code> at the start can use indexes; later stages need <code class="inline-code">allowDiskUse: true</code> for large spills (100MB limit per stage).</div>
+    </section>
+
+    <!-- ================= ACCUMULATORS ================= -->
+    <section id="acc-ops" data-title="accumulator operators sum avg min max push addToSet first last stdDevsortByArray count">
+      <div class="sec-head"><h3>$group Accumulators</h3><span class="tag">Aggregation</span></div>
+      <div class="table-card">
+        <table>
+          <thead><tr><th>Accumulator</th><th>Result</th></tr></thead>
+          <tbody>
+            <tr><td><code>$sum</code></td><td>Total (or <code>$sum: 1</code> = count)</td></tr>
+            <tr><td><code>$avg</code></td><td>Average</td></tr>
+            <tr><td><code>$min</code> / <code>$max</code></td><td>Smallest / largest value</td></tr>
+            <tr><td><code>$first</code> / <code>$last</code></td><td>First/last in input order (needs <code>$sort</code> before)</td></tr>
+            <tr><td><code>$push</code></td><td>Array of all values</td></tr>
+            <tr><td><code>$addToSet</code></td><td>Array of distinct values</td></tr>
+            <tr><td><code>$stdDevPop</code> / <code>$stdDevSamp</code></td><td>Standard deviation</td></tr>
+            <tr><td><code>$mergeObjects</code></td><td>Combine documents into one object</td></tr>
+            <tr><td><code>$count</code></td><td>Shorthand count (3.4+)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ================= INDEXING ================= -->
+    <section id="indexing" data-title="index createIndex dropIndex single compound unique text geospatial hash index explain hint multikey">
+      <div class="sec-head"><h3>Indexing</h3><span class="tag">Performance</span></div>
+      <p class="desc">Indexes dramatically speed up reads but cost write throughput and storage.</p>
+      <div class="grid cols-2">
+        <div class="card">
+          <h4><span class="ic">⚡</span>Create &amp; Manage</h4>
+<pre><code><span class="c">// Single-field</span>
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">createIndex</span>({ <span class="f">email</span>: <span class="n">1</span> }, { <span class="f">unique</span>: <span class="n">true</span> })
+
+<span class="c">// Compound (order matters: equality → range → sort)</span>
+<span class="k">db</span>.<span class="f">orders</span>.<span class="f">createIndex</span>({ <span class="f">userId</span>: <span class="n">1</span>, <span class="f">status</span>: <span class="n">1</span>, <span class="f">date</span>: <span class="o">-1</span> })
+
+<span class="c">// Options</span>
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">createIndex</span>({ <span class="f">name</span>: <span class="n">1</span> }, {
+  <span class="f">name</span>: <span class="s">"name_asc"</span>,
+  <span class="f">unique</span>: <span class="n">false</span>,
+  <span class="f">sparse</span>: <span class="n">true</span>,              <span class="c">// skip docs missing field</span>
+  <span class="f">expireAfterSeconds</span>: <span class="n">3600</span>,  <span class="c">// TTL index</span>
+  <span class="f">partialFilterExpression</span>: { <span class="f">active</span>: <span class="n">true</span> }
+})
+
+<span class="c">// Manage</span>
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">getIndexes</span>()
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">dropIndex</span>(<span class="s">"email_1"</span>)
+<span class="k">db</span>.<span class="f">users</span>.<span class="f">dropIndexes</span>()</code></pre>
+        </div>
+        <div class="card">
+          <h4><span class="ic">📦</span>Index Types</h4>
+          <div class="table-card" style="border:none">
+          <table>
+            <thead><tr><th>Type</th><th>Use</th></tr></thead>
+            <tbody>
+              <tr><td><code>Single</code></td><td>One field lookups</td></tr>
+              <tr><td><code>Compound</code></td><td>Multi-field queries/sorts</td></tr>
+              <tr><td><code>Multikey</code></td><td>Array fields (auto)</td></tr>
+              <tr><td><code>Unique</code></td><td>Enforce distinct values</td></tr>
+              <tr><td><code>TTL</code></td><td>Auto-expire (sessions, tokens)</td></tr>
+              <tr><td><code>Sparse</code></td><td>Skip missing/null fields</td></tr>
+              <tr><td><code>Text</code></td><td>Full-text search</td></tr>
+              <tr><td><code>2dsphere / 2d</code></td><td>GeoJSON location queries</td></tr>
+              <tr><td><code>Hashed</code></td><td>Hash sharding</td></tr>
+              <tr><td><code>Partial</code></td><td>Index subset via filter</td></tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid cols-2" style="margin-top:16px">
+        <div class="card">
+          <h4><span class="ic">🔬</span>Explain</h4>
+<pre><code><span class="k">db</span>.<span class="f">orders</span>.<span class="f">find</span>({ <span class="f">status</span>: <span class="s">"paid"</span> })
+  .<span class="f">explain</span>(<span class="s">"executionStats"</span>)
+
+<span class="c">// Look for:</span>
+<span class="c">//   winningPlan: IXSCAN  (index)  ✅</span>
+<span class="c">//               COLLSCAN (full)   ❌</span>
+<span class="c">//   keysExamined ≈ nReturned (efficient)</span>
+<span class="c">//   totalDocsExamined (low is good)</span></code></pre>
+        </div>
+        <div class="card">
+          <h4><span class="ic">📏</span>Compound Index Rules</h4>
+          <ul class="tight">
+            <li><b>ESR rule:</b> Equality → Sort → Range order.</li>
+            <li>Left-prefix: <code>{a,b,c}</code> serves <code>a</code>, <code>a+b</code>, <code>a+b+c</code>.</li>
+            <li>Won't serve <code>b</code> alone or <code>a+c</code> efficiently.</li>
+            <li>Direction only matters for sort (all <code>-1</code> matches reverse).</li>
+            <li>One index per query — MongoDB picks one (or intersects).</li>
+            <li>Use <code>hint("index_name")</code> to force an index.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="note warn"><b>Write cost:</b> Every index must be updated on insert/update. Avoid indexing rarely queried, low-cardinality fields (e.g. <code class="inline-code">gender</code>) unless selective.</div>
+    </section>
+
+    <!-- ================= TRANSACTIONS ================= -->
+    <section id="transactions" data-title="transaction session startSession commitTransaction abort multi document acid replica set">
+      <div class="sec-head"><h3>Transactions</h3><span class="tag">Advanced</span></div>
+      <p class="desc">Multi-document ACID transactions (require a replica set / sharded cluster).</p>
+      <div class="card">
+        <h4><span class="ic">🔁</span>Session Example</h4>
+<pre><code><span class="k">const</span> session = <span class="f">client</span>.<span class="f">startSession</span>();
+<span class="k">try</span> {
+  session.<span class="f">withTransaction</span>(<span class="k">async</span> () =>
+    <span class="k">async</span> () => {
+      <span class="k">await</span> db.<span class="f">collection</span>(<span class="s">"accounts"</span>).<span class="f">updateOne</span>(
+        { _id: from }, { $inc: { balance: -100 } }, { session });
+      <span class="k">await</span> db.<span class="f">collection</span>(<span class="s">"accounts"</span>).<span class="f">updateOne</span>(
+        { _id: to },   { $inc: { balance: 100 } },  { session });
+    });
+  } <span class="k">finally</span> {
+    session.<span class="f">endSession</span>();
+  }</code></pre>
+        <div class="note"><b>Notes:</b> Read/write concerns apply per transaction; transactions are causal-consistent by default; keep them short — they hold WiredTiger snapshot resources.</div>
+      </div>
+    </section>
+
+    <!-- ================= SCHEMA ================= -->
+    <section id="schema" data-title="schema design data modeling embedding referencing normalization denormalization pattern bucketing polymorphism">
+      <div class="sec-head"><h3>Schema Design</h3><span class="tag">Modeling</span></div>
+      <p class="desc">Unlike SQL, optimize for query patterns — "data that is accessed together should be stored together."</p>
+      <div class="grid cols-2">
+        <div class="card">
+          <h4><span class="ic">🧩</span>Embed vs Reference</h4>
+          <div class="table-card" style="border:none">
+          <table>
+            <thead><tr><th></th><th>Embed (1:few / 1:1)</th><th>Reference (1:many / many:many)</th></tr></thead>
+            <tbody>
+              <tr><td>Reads</td><td>One query ✅</td><td><code>$lookup</code> / multiple queries</td></tr>
+              <tr><td>Writes</td><td>Single-doc atomic</td><td>Multi-doc updates</td></tr>
+              <tr><td>Consistency</td><td>Always consistent</td><td>May go stale</td></tr>
+              <tr><td>Growth</td><td>16MB doc limit</td><td>Unbounded</td></tr>
+            </tbody>
+          </table>
+          </div>
+          <div class="note"><b>Rule of thumb:</b> Embed if you always read together and the array is bounded. Reference if unbounded or updated independently.</div>
+        </div>
+        <div class="card">
+          <h4><span class="ic">🏗️</span>Common Patterns</h4>
+          <ul class="tight">
+            <li><b>Bucketing:</b> group time-series events into docs (e.g. 500 sensor readings each).</li>
+            <li><b>Subset:</b> keep only last N references inline, the rest referenced.</li>
+            <li><b>Computed:</b> store aggregates (denormalized counts) updated on write.</li>
+            <li><b>Polymorphic:</b> one collection, fields vary by type (<code>type</code> discriminator).</li>
+            <li><b>Attribute:</b> EAV-style for varying product attributes.</li>
+            <li><b>Snapshot:</b> copy historical data (orders keep a product snapshot).</li>
+          </ul>
+          <div class="note warn"><b>Avoid:</b> Massive unbounded arrays — split into separate docs beyond tens of thousands of elements.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= ADMIN ================= -->
+    <section id="admin" data-title="admin backup restore dump mongodump mongorestore replica set user role auth import export mongoexport security write concern">
+      <div class="sec-head"><h3>Admin &amp; Backup</h3><span class="tag">Ops</span></div>
+      <div class="grid cols-2">
+        <div class="card">
+          <h4><span class="ic">💾</span>Backup / Restore</h4>
+<pre><code><span class="c"># Logical backup</span>
+<span class="k">mongodump</span>  --uri=<span class="s">"$URI"</span> --out=./backup
+<span class="k">mongorestore</span> --uri=<span class="s">"$URI"</span> ./backup --drop
+
+<span class="c"># Query subset</span>
+<span class="k">mongodump</span> --db=mydb --collection=users --query=<span class="s">'{"age":{"$gt":18}}'</span>
+
+<span class="c"># Export / import JSON|CSV</span>
+<span class="k">mongoexport</span> --db=mydb --collection=users --out=users.json
+<span class="k">mongoimport</span> --db=mydb --collection=users --file=users.json --headerLine
+
+<span class="c"># Point-in-time backup: add --oplog to mongodump</span></code></pre>
+        </div>
+        <div class="card">
+          <h4><span class="ic">🔐</span>Users &amp; Roles</h4>
+<pre><code><span class="k">use</span> admin
+<span class="k">db</span>.<span class="f">createUser</span>({
+  <span class="f">user</span>: <span class="s">"appAdmin"</span>,
+  <span class="f">pwd</span>: <span class="s">"securePass"</span>,
+  <span class="f">roles</span>: [{ <span class="f">role</span>: <span class="s">"readWrite"</span>, <span class="f">db</span>: <span class="s">"mydb"</span> },
+          { <span class="f">role</span>: <span class="s">"clusterAdmin"</span>, <span class="f">db</span>: <span class="s">"admin"</span> }]
+})
+<span class="k">db</span>.<span class="f">changeUserPassword</span>(<span class="s">"appAdmin"</span>, <span class="s">"newPass"</span>)
+<span class="k">db</span>.<span class="f">dropUser</span>(<span class="s">"appAdmin"</span>)
+<span class="k">show</span> <span class="f">users</span></code></pre>
+          <div class="note"><b>Built-in roles:</b> <code class="inline-code">read</code>, <code class="inline-code">readWrite</code>, <code class="inline-code">dbAdmin</code>, <code class="inline-code">dbOwner</code>, <code class="inline-code">root</code>, <code class="inline-code">clusterAdmin</code>.</div>
+        </div>
+      </div>
+      <div class="grid cols-2" style="margin-top:16px">
+        <div class="card">
+          <h4><span class="ic">🖥️</span>Mongod Ops</h4>
+<pre><code><span class="k">mongod</span> --dbpath /data/db --port <span class="n">27017</span> --logpath /var/log/mongod.log --fork
+<span class="k">mongosh</span> --eval <span class="s">"db.serverStatus()"</span>
+<span class="k">mongosh</span> --eval <span class="s">"rs.status()"</span>     <span class="c">// replica set status</span></code></pre>
+        </div>
+        <div class="card">
+          <h4><span class="ic">🎚️</span>Write / Read Concern</h4>
+          <ul class="tight">
+            <li><b>W:</b> <code>1</code> (default ack by primary), <code>majority</code>, <code>0</code> (unacknowledged)</li>
+            <li><b>Journal:</b> <code>j: true</code> — write persisted to journal</li>
+            <li><b>Read concern:</b> <code>local</code> (default), <code>majority</code>, <code>linearizable</code></li>
+            <li><b>Read preference:</b> primary → primaryPreferred / secondary / nearest</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PERFORMANCE ================= -->
+    <section id="performance" data-title="performance tips best practices monitoring slow query profiler cursor optimization gridfs explain">
+      <div class="sec-head"><h3>Performance Tips</h3><span class="tag">Best Practices</span></div>
+      <div class="grid cols-2">
+        <div class="card">
+          <h4><span class="ic">🚀</span>Do</h4>
+          <ul class="tight">
+            <li>Put <code>$match</code> first in pipelines; filter on indexed fields.</li>
+            <li>Project only needed fields — less network, better plan-cache hits.</li>
+            <li>Follow the <b>ESR rule</b> for compound index order.</li>
+            <li>Use <code>explain("executionStats")</code> to verify <code>IXSCAN</code>.</li>
+            <li>Batch inserts; prefer bulk APIs over per-doc round trips.</li>
+            <li>Use TTL indexes for ephemeral data instead of cron deletes.</li>
+            <li>Monitor with <code>db.currentOp()</code>, <code>db.serverStatus()</code>, mtools, or Atlas metrics.</li>
+            <li>Profile selectively: <code>db.setProfilingLevel(1, {ms: 100})</code>.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4><span class="ic">🚫</span>Avoid</h4>
+          <ul class="tight">
+            <li>Unindexed queries (<code>COLLSCAN</code>), especially on <code>$lookup</code> foreigns.</li>
+            <li>Deep <code>skip()</code> pagination.</li>
+            <li>Huge numbers of tiny documents — per-doc storage overhead.</li>
+            <li>Storing large binaries in documents (use GridFS).</li>
+            <li>Unbounded arrays &amp; "one giant document" for high-write data.</li>
+            <li>Over-indexing — every index slows writes and eats RAM.</li>
+            <li>Calling <code>toArray()</code> on huge cursors (OOM).</li>
+            <li>Running <code>distinct()</code> on unindexed, high-cardinality fields.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="note"><b>GridFS:</b> For files &gt; 16 MB, use GridFS — chunks (default 255 KB) in <code class="inline-code">fs.files</code> and <code class="inline-code">fs.chunks</code>.</div>
+    </section>
+
+    <footer>
+      🍃 MongoDB Cheatsheet · Built for quick reference · Tested with <b>mongosh</b> (MongoDB 6.x / 7.x) · Press <code class="inline-code">/</code> to search
+    </footer>
+  </main>
+</div>
+
+<button class="back-top" id="backTop" title="Back to top">↑</button>
+
+<script>
+(function () {
+  const search = document.getElementById('search');
+  const clearBtn = document.getElementById('clearSearch');
+  const countEl = document.getElementById('count');
+  const noResults = document.getElementById('noResults');
+  const sections = Array.from(document.querySelectorAll('main section'));
+  const navLinks = Array.from(document.querySelectorAll('nav a'));
+  const backTop = document.getElementById('backTop');
+
+  function normalize(s) { return s.toLowerCase().replace(/\s+/g, ' ').trim(); }
+
+  const index = sections.map(sec => ({
+    el: sec,
+    id: sec.id,
+    title: normalize(sec.dataset.title || ''),
+    heading: normalize(sec.querySelector('.sec-head h3').textContent),
+    body: normalize(sec.textContent).slice(0, 4000)
+  }));
+
+  function filter() {
+    const q = normalize(search.value);
+    clearBtn.style.display = q ? 'block' : 'none';
+    let visible = 0;
+    index.forEach(item => {
+      const match = !q || item.title.includes(q) || item.heading.includes(q) || item.body.includes(q);
+      item.el.classList.toggle('hide', !match);
+      const link = navLinks.find(a => a.getAttribute('href') === '#' + item.id);
+      if (link) link.classList.toggle('hide', !match);
+      if (match) visible++;
+    });
+    countEl.textContent = visible;
+    noResults.style.display = visible === 0 ? 'block' : 'none';
+  }
+
+  search.addEventListener('input', filter);
+  clearBtn.addEventListener('click', () => { search.value = ''; filter(); search.focus(); });
+
+  // "/" focuses search, Esc clears
+  document.addEventListener('keydown', e => {
+    if (e.key === '/' && document.activeElement !== search) { e.preventDefault(); search.focus(); search.select(); }
+    if (e.key === 'Escape') { search.value = ''; filter(); search.blur(); }
+  });
+
+  // Copy buttons on every code block
+  document.querySelectorAll('pre').forEach(pre => {
+    const btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', () => {
+      const clone = pre.cloneNode(true);
+      const c = clone.querySelector('.copy');
+      if (c) c.remove();
+      navigator.clipboard.writeText(clone.textContent.trim()).then(() => {
+        btn.textContent = 'Copied ✓';
+        btn.classList.add('done');
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1400);
+      });
+    });
+    pre.appendChild(btn);
+  });
+
+  // Active nav highlighting
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + entry.target.id));
+      }
+    });
+  }, { rootMargin: '-15% 0px -70% 0px' });
+  sections.forEach(s => observer.observe(s));
+
+  // Back to top
+  window.addEventListener('scroll', () => backTop.classList.toggle('show', window.scrollY > 600));
+  backTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+  countEl.textContent = sections.length;
+})();
+</script>
+</body>
+</html>

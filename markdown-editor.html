@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MongoDB Learning Plan — Markdown Editor</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg-soft: #131a24;
+    --panel: #161d2a;
+    --border: #2a3446;
+    --text: #e6edf3;
+    --muted: #93a1b3;
+    --accent: #00ed64;
+    --accent-2: #00b352;
+    --blue: #4db8ff;
+    --code-bg: #0a0f16;
+    --danger: #ff6b6b;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ---------- Toolbar ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 10px 16px;
+    background: linear-gradient(180deg, var(--bg-soft), var(--bg));
+    border-bottom: 1px solid var(--border);
+    flex: 0 0 auto;
+  }
+  header .brand {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 700; margin-right: 8px; white-space: nowrap;
+  }
+  header .brand .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 12px var(--accent);
+  }
+  header .file {
+    color: var(--muted); font-size: 13px; font-family: ui-monospace, monospace;
+    max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  button {
+    font: inherit; font-size: 13px; cursor: pointer;
+    color: var(--text);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 7px 13px;
+    border-radius: 8px;
+    transition: .15s;
+  }
+  button:hover { border-color: var(--accent-2); color: #fff; }
+  button.primary { background: var(--accent); color: #04110a; border-color: var(--accent); font-weight: 700; }
+  button.primary:hover { background: var(--accent-2); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .spacer { flex: 1; }
+  .viewswitch { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .viewswitch button { border: none; border-radius: 0; background: transparent; padding: 7px 12px; }
+  .viewswitch button.active { background: var(--accent); color: #04110a; font-weight: 700; }
+
+  .status { font-size: 12px; color: var(--muted); min-width: 130px; text-align: right; }
+  .status.dirty { color: #ffb86c; }
+  .status.ok { color: var(--accent); }
+
+  /* ---------- Layout ---------- */
+  main { flex: 1 1 auto; display: flex; min-height: 0; }
+  .pane { flex: 1 1 50%; min-width: 0; display: flex; flex-direction: column; }
+  .pane + .pane { border-left: 1px solid var(--border); }
+  .pane.hidden { display: none; }
+
+  textarea {
+    flex: 1; resize: none; border: 0; outline: none;
+    background: var(--code-bg); color: var(--text);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 13.5px; line-height: 1.6; padding: 18px 20px;
+    tab-size: 2;
+  }
+  #preview {
+    flex: 1; overflow: auto; padding: 26px 34px 80px;
+    background: var(--bg); line-height: 1.65;
+  }
+
+  /* ---------- Markdown preview styling ---------- */
+  #preview h1, #preview h2, #preview h3, #preview h4 { line-height: 1.25; margin: 1.4em 0 .5em; }
+  #preview h1 { font-size: 2em; border-bottom: 1px solid var(--border); padding-bottom: .3em; }
+  #preview h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: .25em; margin-top: 1.6em; }
+  #preview h3 { font-size: 1.2em; color: var(--accent); }
+  #preview p { margin: .7em 0; }
+  #preview a { color: var(--blue); }
+  #preview code {
+    background: var(--panel); border: 1px solid var(--border);
+    padding: 2px 6px; border-radius: 6px;
+    font-family: ui-monospace, monospace; font-size: .88em;
+  }
+  #preview pre {
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px; overflow: auto;
+  }
+  #preview pre code { background: none; border: none; padding: 0; }
+  #preview blockquote {
+    border-left: 3px solid var(--accent-2); margin: .8em 0;
+    padding: .2em 1em; color: var(--muted); background: var(--bg-soft);
+    border-radius: 0 8px 8px 0;
+  }
+  #preview hr { border: none; border-top: 1px solid var(--border); margin: 1.8em 0; }
+  #preview ul, #preview ol { padding-left: 1.5em; }
+  #preview table { border-collapse: collapse; margin: 1em 0; width: 100%; font-size: 14px; }
+  #preview th, #preview td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+  #preview th { background: var(--panel); color: var(--accent); }
+  #preview tr:nth-child(even) td { background: var(--bg-soft); }
+  #preview input[type="checkbox"], .task { margin-right: 6px; accent-color: var(--accent); width: 14px; height: 14px; vertical-align: -2px; cursor: pointer; }
+  #preview img { max-width: 100%; }
+
+  .empty-hint {
+    color: var(--muted); font-size: 14px; text-align: center;
+    padding: 60px 20px; line-height: 1.8;
+  }
+  .empty-hint kbd {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 2px 7px; font-family: ui-monospace, monospace;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand"><span class="dot"></span> MongoDB DBA Plan</div>
+  <button id="openBtn">📂 Open .md</button>
+  <button id="saveBtn" class="primary" disabled>💾 Save</button>
+  <button id="saveAsBtn" disabled>Save As…</button>
+  <button id="downloadBtn">⬇ Download</button>
+  <div class="viewswitch" role="group" aria-label="View mode">
+    <button data-view="split" class="active">Split</button>
+    <button data-view="edit">Edit</button>
+    <button data-view="preview">Preview</button>
+  </div>
+  <div class="spacer"></div>
+  <div class="file" id="fileName">No file loaded</div>
+  <div class="status" id="status">—</div>
+</header>
+
+<main>
+  <section class="pane" id="editPane">
+    <textarea id="editor" spellcheck="false" placeholder="Open a Markdown file with 📂 Open .md, or start typing here…"></textarea>
+  </section>
+  <section class="pane" id="previewPane">
+    <div id="preview">
+      <div class="empty-hint">
+        <p>No document loaded.</p>
+        <p>Click <kbd>📂 Open .md</kbd> and choose <strong>MongoDB-DBA-Learning-Plan.md</strong>.</p>
+        <p style="font-size:12px">Tip: In Chrome/Edge, edits save directly back to the original file.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<input type="file" id="fileInput" accept=".md,.markdown,.txt,text/markdown" hidden>
+
+<script>
+/* ============================================================
+   Minimal, dependency-free Markdown renderer
+   Supports: headings, bold, italic, inline code, links, images,
+   fenced code blocks, blockquotes, hr, ordered/unordered lists,
+   task lists, and GFM tables.
+   ============================================================ */
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function renderInline(text) {
+  let t = escapeHtml(text);
+  // inline code (protect first via placeholders)
+  const codes = [];
+  t = t.replace(/`([^`]+)`/g, (m, c) => {
+    codes.push(c);
+    return `\u0000${codes.length - 1}\u0000`;
+  });
+  // images
+  t = t.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, '<img alt="$1" src="$2">');
+  // links (block javascript:/data: URLs)
+  t = t.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, txt, href) => {
+    const h = href.trim();
+    const safe = /^javascript:|^data:/i.test(h) ? '#' : h;
+    return `<a href="${safe}" target="_blank" rel="noopener">${txt}</a>`;
+  });
+  // bold + italic
+  t = t.replace(/\*\*\*([^*]+)\*\*\*/g, '<strong><em>$1</em></strong>');
+  t = t.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  t = t.replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>');
+  t = t.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+  t = t.replace(/(^|[^_])_([^_]+)_/g, '$1<em>$2</em>');
+  // strikethrough
+  t = t.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+  // restore inline code
+  t = t.replace(/\u0000(\d+)\u0000/g, (m, i) => `<code>${escapeHtml(codes[+i])}</code>`);
+  return t;
+}
+
+function parseTableRow(line) {
+  return line.replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+}
+
+function renderMarkdown(src) {
+  const lines = src.replace(/\r\n?/g, '\n').split('\n');
+  const out = [];
+  let i = 0;
+  let listStack = []; // 'ul' | 'ol'
+
+  const closeLists = () => {
+    while (listStack.length) out.push(`</${listStack.pop()}>`);
+  };
+
+  while (i < lines.length) {
+    let line = lines[i];
+
+    // fenced code
+    const fence = line.match(/^```(.*)$/);
+    if (fence) {
+      closeLists();
+      const lang = fence[1].trim();
+      const buf = [];
+      i++;
+      while (i < lines.length && !/^```/.test(lines[i])) { buf.push(lines[i]); i++; }
+      i++; // skip closing fence
+      out.push(`<pre><code${lang ? ` class="language-${escapeHtml(lang)}"` : ''}>${escapeHtml(buf.join('\n'))}</code></pre>`);
+      continue;
+    }
+
+    // headings
+    const h = line.match(/^(#{1,6})\s+(.*)$/);
+    if (h) {
+      closeLists();
+      const lvl = h[1].length;
+      out.push(`<h${lvl}>${renderInline(h[2].replace(/\s+#+\s*$/, ''))}</h${lvl}>`);
+      i++; continue;
+    }
+
+    // hr
+    if (/^\s*([-*_])\s*(\1\s*){2,}$/.test(line)) {
+      closeLists(); out.push('<hr>'); i++; continue;
+    }
+
+    // blockquote
+    if (/^\s*>\s?/.test(line)) {
+      closeLists();
+      const buf = [];
+      while (i < lines.length && /^\s*>\s?/.test(lines[i])) {
+        buf.push(lines[i].replace(/^\s*>\s?/, ''));
+        i++;
+      }
+      out.push(`<blockquote>${renderMarkdown(buf.join('\n'))}</blockquote>`);
+      continue;
+    }
+
+    // table (header row + separator)
+    if (/^\s*\|.+\|\s*$/.test(line) && i + 1 < lines.length && /^\s*\|?[\s:|-]+\|?\s*$/.test(lines[i + 1]) && /-/.test(lines[i + 1])) {
+      closeLists();
+      const header = parseTableRow(line.trim());
+      i += 2;
+      const rows = [];
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) {
+        rows.push(parseTableRow(lines[i].trim()));
+        i++;
+      }
+      let html = '<table><thead><tr>';
+      header.forEach(c => html += `<th>${renderInline(c)}</th>`);
+      html += '</tr></thead><tbody>';
+      rows.forEach(r => {
+        html += '<tr>';
+        for (let c = 0; c < header.length; c++) html += `<td>${renderInline(r[c] ?? '')}</td>`;
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      out.push(html);
+      continue;
+    }
+
+    // list item (unordered or ordered, incl. task list)
+    const li = line.match(/^(\s*)([-*+]|\d+[.)])\s+(.*)$/);
+    if (li) {
+      const type = /\d/.test(li[2]) ? 'ol' : 'ul';
+      if (listStack.length === 0 || listStack[listStack.length - 1] !== type) {
+        closeLists();
+        listStack.push(type);
+        out.push(`<${type}>`);
+      }
+      let content = li[3];
+      const task = content.match(/^\[([ xX])\]\s+(.*)$/);
+      if (task) {
+        const checked = task[1].toLowerCase() === 'x' ? ' checked' : '';
+        content = `<input type="checkbox" class="task"${checked}> ${renderInline(task[2])}`;
+      } else {
+        content = renderInline(content);
+      }
+      out.push(`<li>${content}</li>`);
+      i++;
+      continue;
+    }
+
+    // blank line
+    if (/^\s*$/.test(line)) {
+      closeLists(); i++; continue;
+    }
+
+    // paragraph (consume until blank/other block)
+    closeLists();
+    const buf = [line];
+    i++;
+    while (i < lines.length && !/^\s*$/.test(lines[i]) &&
+           !/^(#{1,6})\s/.test(lines[i]) && !/^```/.test(lines[i]) &&
+           !/^\s*>\s?/.test(lines[i]) && !/^\s*([-*+]|\d+[.)])\s+/.test(lines[i]) &&
+           !/^\s*\|.*\|\s*$/.test(lines[i]) &&
+           !/^\s*([-*_])\s*(\1\s*){2,}$/.test(lines[i])) {
+      buf.push(lines[i]); i++;
+    }
+    out.push(`<p>${renderInline(buf.join('\n'))}</p>`);
+  }
+  closeLists();
+  return out.join('\n');
+}
+
+/* ============================================================
+   Editor logic
+   ============================================================ */
+const editor = document.getElementById('editor');
+const preview = document.getElementById('preview');
+const fileNameEl = document.getElementById('fileName');
+const statusEl = document.getElementById('status');
+const openBtn = document.getElementById('openBtn');
+const saveBtn = document.getElementById('saveBtn');
+const saveAsBtn = document.getElementById('saveAsBtn');
+const downloadBtn = document.getElementById('downloadBtn');
+const fileInput = document.getElementById('fileInput');
+
+const LS_KEY = 'mongo-dba-plan-md';
+const LS_NAME = 'mongo-dba-plan-name';
+
+let fileHandle = null;   // File System Access API handle
+let currentName = 'document.md';
+let dirty = false;
+let fileLoaded = false;  // true once a document (open or recovered) is present
+let saveTimer = null;
+
+function setStatus(text, cls = '') {
+  statusEl.textContent = text;
+  statusEl.className = 'status ' + cls;
+}
+
+const HINT_HTML = preview.innerHTML; // keep the "No document loaded" hint
+
+function refreshPreview() {
+  const v = editor.value || '';
+  if (!v.trim() && !fileLoaded) { preview.innerHTML = HINT_HTML; return; }
+  preview.innerHTML = renderMarkdown(v);
+}
+
+function markDirty() {
+  dirty = true;
+  setStatus('● Unsaved changes', 'dirty');
+  saveBtn.disabled = false;
+  saveAsBtn.disabled = false;
+  downloadBtn.disabled = false;
+  clearTimeout(saveTimer);
+  // persist a crash-recovery copy
+  saveTimer = setTimeout(() => {
+    try { localStorage.setItem(LS_KEY, editor.value); localStorage.setItem(LS_NAME, currentName); } catch (e) {}
+  }, 400);
+}
+
+editor.addEventListener('input', () => { refreshPreview(); markDirty(); });
+
+// Tab key inserts two spaces instead of changing focus
+editor.addEventListener('keydown', (e) => {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const s = editor.selectionStart, en = editor.selectionEnd;
+    editor.value = editor.value.slice(0, s) + '  ' + editor.value.slice(en);
+    editor.selectionStart = editor.selectionEnd = s + 2;
+    markDirty();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+    e.preventDefault();
+    saveFile();
+  }
+});
+
+/* ---------- Open ---------- */
+async function openFilePicker() {
+  // Prefer File System Access API (lets us Save back to the same file)
+  if (window.showOpenFilePicker) {
+    try {
+      const [handle] = await window.showOpenFilePicker({
+        types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md', '.markdown', '.txt'] } }]
+      });
+      const file = await handle.getFile();
+      fileHandle = handle;
+      await loadIntoEditor(file, file.name);
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+      // fall through to input fallback
+    }
+  }
+  fileInput.click();
+}
+
+async function loadIntoEditor(file, name) {
+  const text = await file.text();
+  currentName = name || 'document.md';
+  fileNameEl.textContent = currentName;
+  editor.value = text;
+  dirty = false;
+  fileLoaded = true;
+  setStatus('Loaded', 'ok');
+  refreshPreview();
+  saveBtn.disabled = false;
+  saveAsBtn.disabled = false;
+  downloadBtn.disabled = false;
+}
+
+openBtn.addEventListener('click', openFilePicker);
+
+fileInput.addEventListener('change', async () => {
+  const f = fileInput.files && fileInput.files[0];
+  if (!f) return;
+  fileHandle = null; // no direct save-back in fallback mode
+  await loadIntoEditor(f, f.name);
+});
+
+/* ---------- Save ---------- */
+async function saveFile() {
+  if (window.showSaveFilePicker) {
+    try {
+      if (!fileHandle) {
+        fileHandle = await window.showSaveFilePicker({
+          suggestedName: currentName || 'document.md',
+          types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md'] } }]
+        });
+      }
+      const writable = await fileHandle.createWritable();
+      await writable.write(editor.value);
+      await writable.close();
+      const f = await fileHandle.getFile();
+      currentName = f.name;
+      fileNameEl.textContent = currentName;
+      dirty = false;
+      setStatus('Saved ✓', 'ok');
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+      console.warn(err);
+    }
+  }
+  // Fallback: download
+  downloadFile();
+  dirty = false;
+  setStatus('Downloaded', 'ok');
+}
+
+saveBtn.addEventListener('click', saveFile);
+
+saveAsBtn.addEventListener('click', async () => {
+  if (window.showSaveFilePicker) {
+    fileHandle = null;
+    await saveFile();
+  } else {
+    downloadFile();
+  }
+});
+
+function downloadFile() {
+  const blob = new Blob([editor.value], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = currentName || 'document.md';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+downloadBtn.addEventListener('click', downloadFile);
+
+/* ---------- View switching ---------- */
+const editPane = document.getElementById('editPane');
+const previewPane = document.getElementById('previewPane');
+document.querySelectorAll('.viewswitch button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.viewswitch button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const v = btn.dataset.view;
+    editPane.classList.toggle('hidden', v === 'preview');
+    previewPane.classList.toggle('hidden', v === 'edit');
+  });
+});
+
+/* ---------- Warn on unload ---------- */
+window.addEventListener('beforeunload', (e) => {
+  if (dirty) { e.preventDefault(); e.returnValue = ''; }
+});
+
+/* ---------- Restore last session from localStorage ---------- */
+(function restore() {
+  try {
+    const saved = localStorage.getItem(LS_KEY);
+    const name = localStorage.getItem(LS_NAME);
+    if (saved) {
+      editor.value = saved;
+      currentName = name || currentName;
+      fileNameEl.textContent = currentName + ' (recovered)';
+      fileLoaded = true;
+      saveBtn.disabled = false;
+      saveAsBtn.disabled = false;
+      downloadBtn.disabled = false;
+      setStatus('Recovered draft', 'dirty');
+      dirty = true;
+    }
+  } catch (e) {}
+  refreshPreview();
+})();
+</script>
+</body>
+</html>
